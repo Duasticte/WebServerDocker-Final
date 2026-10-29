@@ -1,0 +1,51 @@
+stages:
+  - checkout
+  - test
+  - build
+  - docker
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+
+default:
+  tags:
+    - kali-final
+
+variables:
+  GIT_STRATEGY: clone
+
+checkout-job:
+  stage: checkout
+  script:
+    - echo '[CHECKOUT] GitLab Runner checked out the repository from GitLab.com'
+    - echo "[CHECKOUT] Commit: $(git rev-parse --short HEAD)"
+    - echo '[CHECKOUT] Website files:'
+    - ls -l website/
+
+
+test-job:
+  stage: test
+  script:
+    - echo '[TEST] Checking site files and Compose configuration'
+    - bash scripts/check.sh
+
+build-job:
+  stage: build
+  script:
+    - export IMAGE_TAG="sha-${CI_COMMIT_SHORT_SHA}-gl-${CI_PIPELINE_ID}"
+    - echo "[BUILD] Building image ${HUB_USER}/webserverdocker:${IMAGE_TAG}"
+
+    - bash scripts/build.sh
+
+docker-job:
+  stage: docker
+  needs:
+    - build-job
+
+  script:
+    - export IMAGE_TAG="sha-${CI_COMMIT_SHORT_SHA}-gl-${CI_PIPELINE_ID}"
+    - echo '[DOCKER] Publishing image and deploying the complete Compose stack'
+    - bash scripts/deploy.sh

@@ -1,0 +1,6 @@
+.git
+.env
+*.zip
+.gitlab-ci.yml
+Jenkinsfile
+README.md
